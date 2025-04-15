@@ -53,12 +53,6 @@ resource "aws_vpc_security_group_egress_rule" "sg_rule2" {
   ip_protocol       = "-1"
 }
 
-resource "aws_network_interface" "netin1" {
-  subnet_id       = aws_subnet.subnet0.id
-  security_groups = [aws_security_group.sg1.id]
-  description     = "ENI for instances"
-}
-
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -76,13 +70,16 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "ec2_1" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  key_name = "key1" 
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  key_name                    = "key1"
+  user_data                   = filebase64("./user_data_nfs1.sh")
+  subnet_id                   = aws_subnet.subnet0.id
   associate_public_ip_address = true
-  user_data = filebase64("./user_data_nfs1.sh")
+  vpc_security_group_ids      = [aws_security_group.sg1.id]
+  count = 2
   tags = {
     type = "terraformed"
-    Name = "efs1"
+    Name = "ek${count.index}"
   }
 }
