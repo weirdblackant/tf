@@ -1,0 +1,541 @@
+Terraform:
+-----------
+- Terraform is a infrastructure management tool introduced by Hashicorp to create, change and version cloud/on-premise infrastructure efficiently.
+- Terraform configuration language can be used to declare infrastructure and whatever fed creates Infrastructure as below.
+
+-------------
+resource "aws_vpc" "main" {
+  cidr_block = var.base_cidr_block
+}
+
+<BLOCK TYPE> "<BLOCK LABEL>" "<BLOCK LABEL>" {
+  # Block body
+  <IDENTIFIER> = <EXPRESSION> # Argument
+}
+-------------
+
+Now, after Installation of cloud terminal and terraform software.
+
+Terraform Configuration files:
+---------------------------
+
+- Terraform configuration files for standard use cases as below
+	main.tf		- file that has main definitions
+	variables.tf	- file that has variable definitions used in 'main.tf'
+	terraform.tfvars- it has all real values to supply to 'main.tf'
+	outputs.tf	- file that contains all output blocks in alphabetical order
+	providers.tf	- file that contains all provider blocks and configuration.
+	backend.tf	- file for backend configuration to save tfstate file 
+
+
+How to write Terraform configuration files:
+-------------------------------------------
+- First create directory structure including modules 
+
+mkdir -p azure/modules/{resGrp,netwrkInterf,subNet,virNet,vm} && touch azure/{main.tf,variables.tf,terraform.tfvars,output.tf,providers.tf,backend.tf} azure/modules/{resGrp,netwrkInterf,subNet,virNet,vm}/{main.tf,variables.tf}
+
+- To create any structure declare it in the 'main.tf' file
+
+main.tf:
+---------
+variable "resource_group_name" {
+  type = string	
+  description = 'resource group name'
+  default = 'rg1'
+}
+variable "location" {
+  type = string
+  description = 'location'
+  default = 'eastus'
+}
+
+resource "azure_resource_group" "res_name" {
+  name = var.resource_group_name
+  location = var.location
+}
+------------
+
+	terraform init
+	terraform plan -out state1.tfstate # state from which the current state goint to happen
+	terraform apply -state state1.tfstate #apply that state if approved
+
+NOTE:
+-------
+- If we change the name of the above location or any resource, it deletes and creates new one
+- Thus, the associated resources will be gone if the resource is linked with the previous state
+- beware of the changing of the existing state of any resource
+
+
+Type of constructs in TERRAFORM:
+----------------------------------
+- Resources
+- Data Sources
+- Providers
+- Variables and Outputs
+- Expressions
+- Modules
+- Moved Block
+- Terraform Block
+- Backend Block
+- Checks
+- Import
+- Functions
+- State
+- Tests
+
+
+precondition - Validate Before Applying
+A precondition checks a value before Terraform applies a resource to ensure it meets certain requirements.
+
+postcondition - Validate After Applying
+A postcondition checks a value after Terraform has applied a resource to ensure it behaves as expected.
+
+
+
+
+========================
+Resources:
+-------------
+- Resources blocks creates any resource that can be created and deleted as per the requirement
+
+
+
+
+========================
+Data Sources:
+----------------
+- Data sources allow Terraform to use information outside of Terraform or defined by someother Terraform configuration 
+- we can later filter out the data accumulated using 'data sources' and use in the current scope to fulfill requirement
+- Data sources are only used to pull the data and use it and not involves constructs like creating or destroying
+- Data sources within one block can only pull data of 'single' type
+- Fetch Existing Infrastructure
+- Improve automation and reusability
+
+
+---------
+data "aws_ami" "example" {
+  most_recent = true
+
+  owners = ["self"]
+  tags = {
+    Name   = "app-server"
+    Tested = "true"
+  }
+}
+---------
+
+From the above code,
+
+"aws_ami" is the provider term to call aws ami ids
+"example" is the local identifier to export the data and use elsewhere inside the module 
+All the other attributes are query contraints specified to get the details from AWS API
+
+
+
+From the above code:
+
+- The data block creates a data instance of the given type (first block label) and name (second block label)
+- The combination of the type and name must be unique.
+
+
+ex: 
+- AMI ids in a specific region for OSs like 'Ubuntu'.
+- Instances already running in that region with name starting 'ubuntu' etc.,
+
+
+
+
+
+
+========================
+providers:
+------------
+- Terraform relies on plugins called providers to interact with cloud providers, SaaS providers, and other APIs.
+- We customize all providers along with their versions and account identity related information in the 'providers.tf' file and the terraform uses it to interact with provider
+- Each provider adds a set of resource types and/or data sources that Terraform can manage.
+- Example form of a providers.tf file with providers requirement with 'required_providers' block
+
+- The required_providers block must be nested inside the top-level terraform block (which can also contain other settings).
+- Each argument in the required_providers block enables one provider. 
+
+providers.tf
+---------------
+terraform {
+  required_providers {
+    mycloud = {
+      source  = "mycorp/mycloud"
+      version = "~> 1.0"
+    }
+  }
+}
+----------------
+From the above file, we have declared which cloud accounts are being configured 
+'mycloud' is the local identifier of the provider within the module
+'source' the global source address for the provider
+'version' constraint specifying provider's version.
+
+- We can also configure the account details inside the providers.tf file inorder to make transactions on the cloud account by adding 
+
+providers.tf
+------------
+providers.tf
+---------------
+terraform {
+  required_providers {
+    mycloud = {
+      source  = "mycorp/mycloud"
+      version = "~> 1.0"
+    }
+  }
+}
+
+provider "aws" {
+  region     = "us-east-1"
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+}
+----------------
+
+
+
+
+========================
+Expressions: Type and values:
+-----------------------------
+- Expressions are the combination of many values inside a configuration like 'dns', 5, 'hello' 
+- often result in a single or many values
+
+Expressions: Type and values:
+- An expression will result in a value and it has a type
+- Below are the types of values that are vaid to use inside configuration files
+
+Types of data:
+------------
+primitive Types:
+----------------
+- string: a sequence of unicode characters('server')
+- number: a numeric value (3)
+- bool  : true/ false
+
+Complex types:
+-------------------
+- list
+- object
+- map
+
+
+
+
+
+========================
+Variables and outputs:
+----------------------
+- There are three types of variables:
+	- input variables : are similar to arguments to a function
+	- output variables: are similar to return values from a function
+	- local variables : are like local values inside that function
+
+input variables:
+-----------------
+- Input variables are termed with block 'variable' 
+- It has a dedicated file 'variables.tf' for declaring of variables
+
+-------------
+variable "image_id" {
+  type = string
+}
+
+variable "availability_zone_names" {
+  type    = list(string)
+  default = ["us-west-1a"]
+}
+-------
+
+Type constraints:
+------------------
+
+- based on type constraints, input variables can be defined inside the 'variables' block
+
+default:
+---------
+- To avoid error due to variable not declaring and passing no value during runtime, default value is given  
+
+type:
+--------
+- Type of the data allowed can be of different allowed types
+- To specify what type of data is accepted for that variable, below are the types
+	string
+	number
+	bool	(primitive types)
+
+	list	(complex types)
+	tuple
+	set
+	object
+	map
+- the keyword 'any' type is used to accept anytype
+
+description:
+--------------
+- Describing the variable for users to know about it
+
+----------
+variable "ec2_name" {
+type	= string
+default	= "ec2_ubuntu"
+description	= "name of the AWS virtual machine"
+}
+---------
+From the above code, if variable value is not passed, then the variable is given with default value of type 'string'
+
+
+validation:
+-----------
+- Setting the constraints for that value in order to allow or not
+
+--------
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+----------
+
+from the above definition, it will be clear to allow the values like above for that variable
+
+ephemeral:
+-----------
+- These values are not rendered during plan stage or state files as it may be 'sensitive'
+- Avoid storing values in state or plan files
+
+--------
+variable "session_token" {
+  type      = string
+  ephemeral = true
+}
+
+------
+
+
+sensitive:
+-----------
+- Limits Terraform UI output when the variable is used in configuration.
+- Suppressing Values in CLI Output
+
+----------
+variable "password" {
+  type      = string
+  ephemeral = true
+}
+
+locals {
+  # local.database_password is implicitly ephemeral because 
+  # var.password is ephemeral.
+  database_password = var.password
+}
+----------
+
+nullable:
+---------
+- Specify if the variable can be null within the mod
+
+
+
+
+
+
+output variables:
+---------------
+- Output variables are defined with block 'output' inside the files and also its dedicated file 'outputs.tf'
+
+outputs.tf
+------------
+output "instance_ip_addr" {
+  value = aws_instance.server.private_ip
+}
+------------
+
+
+with custom condition checks
+
+--------
+output "api_base_url" {
+  value = "https://${aws_instance.example.private_dns}:8433/"
+
+  # The EC2 instance must have an encrypted root volume.
+  precondition {
+    condition     = data.aws_ebs_volume.example.encrypted
+    error_message = "The server's root volume is not encrypted."
+  }
+}
+----------
+
+
+----------
+# modules/db/main.tf
+
+output "secret_id" {
+  value       = aws_secretsmanager_secret.secret_id
+  description = "Temporary secret ID for accessing database in AWS."
+  ephemeral   = true
+}
+----------	
+
+
+
+
+local variables:
+-----------------
+- A local value assigns a name to an expression, so you can use the name multiple times within a module instead of repeating the expression.
+
+
+---------
+locals {
+  service_name = "forum"
+  owner        = "Community Team"
+}
+----------
+
+-------------
+locals {
+  # Ids for multiple sets of EC2 instances, merged together
+  instance_ids = concat(aws_instance.blue.*.id, aws_instance.green.*.id)
+}
+
+locals {
+  # Common tags to be assigned to all resources
+  common_tags = {
+    Service = local.service_name
+    Owner   = local.owner
+  }
+}
+----------
+
+
+
+
+
+
+
+
+
+========================
+Modules:
+---------
+- Modules are containers for multiple resources that are used together. 
+- A module consists of a collection of .tf and/or .tf.json files kept together in a directory.
+- Modules are the main way to package and reuse resource configurations with Terraform.
+
+
+Root Module:
+--------------
+- Every Terraform configuration has at least one module, known as its root module
+- this consists of the resources defined in the .tf files in the main working directory.
+- Files that are the starting point of the Terraform configuration
+	- main.tf
+	- variables.tf
+	- terraform.tfvars
+	- outputs.tf
+	- providers.tf
+	- backend.tf
+
+
+Child Modules:
+--------------
+- A Terraform module (usually the root module of a configuration) can call other modules to include their resources into the configuration.
+- A module that has been called by another module is often referred to as a child module.
+- Child modules can be called multiple times within the same configuration, and multiple configurations can use the same child module.
+- Child modules are the modules that are defined in the 'modules' directory
+
+terraform-project/		#ROOT DIRECTORY
+│── main.tf           # Defines resources(EC2, S3,VPC, etc.)#ROOT DIRECTORY
+│── variables.tf      # Defines input variables  #ROOT DIRECTORY
+│── outputs.tf        # Defines output values  #ROOT DIRECTORY
+│── terraform.tfvars  # Provides values for variables  #ROOT DIRECTORY
+│── provider.tf       # Defines the cloud provider  #ROOT DIRECTORY
+│── modules/          # Contains reusable modules #CHILD MODULES DIRECTORY
+│   ├── vpc/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   ├── ec2/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+
+
+Published Modules:
+------------------
+- In addition to modules from the local filesystem, Terraform can load modules from a public or private registry. 
+- This makes it possible to publish modules for others to use, and to use modules that others have published.
+- Firms also can create their own modules for use within the projects and host in Terraform for use in the organization
+- These modules are in remote url inside TERRAFORM providers registry 
+
+
+
+
+
+========================
+Moved block:
+------------
+- This block is used to change the name of a local resource to other name
+- This block has specifications with two fields 'from' and 'to'
+- 'from' field refers to previous name/address and 'to' field refers to current name/address of that resource
+
+
+
+
+
+
+========================
+Terraform block:
+----------------
+- 
+
+
+
+
+
+
+
+
+
+========================
+Backend block:
+--------------
+
+
+
+
+
+
+
+
+========================
+checks:
+-------
+
+
+
+
+
+
+
+========================
+import:
+-------
+
+
+
+
+
+
+
+========================
+expressions:
+------------
+========================
