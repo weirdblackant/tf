@@ -59,6 +59,11 @@ resource "aws_network_interface" "netin1" {
   description     = "ENI for instances"
 }
 
+resource "aws_eip" "example" {
+  vpc                       = true
+  network_interface         = aws_network_interface.netin1.id
+}
+
 data "aws_ami" "ubuntu" {
   most_recent = true
 

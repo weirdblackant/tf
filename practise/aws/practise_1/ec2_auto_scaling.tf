@@ -53,12 +53,6 @@ resource "aws_vpc_security_group_egress_rule" "sg_rule2" {
   ip_protocol       = "-1"
 }
 
-resource "aws_network_interface" "netin1" {
-  subnet_id       = aws_subnet.subnet0.id
-  security_groups = [aws_security_group.sg1.id]
-  description     = "ENI for instances"
-}
-
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -75,19 +69,34 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "aws_instance" "ec2_1" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  key_name = "key1" 
-  user_data = filebase64("./user_data_nfs1.sh")
-  network_interface {
-    device_index          = 0
-    subnet_id             = aws_subnet.subnet0.id
+
+resource "aws_launch_template" "launch-temp1" {
+  name_prefix   = "example-"
+  image_id      = data.aws_ami.ubuntu.id #"ami-0c55b159cbfafe1f0"
+  instance_type = var.instance_type
+  key_name      = var.key_name
+  network_interfaces {
     associate_public_ip_address = true
-    security_groups       = [aws_security_group.sg1.id]
+    subnet_id                   = aws_subnet.subnet0.id
+    security_groups             = [aws_security_group.sg1.id]
   }
-  tags = {
-    type = "terraformed"
-    Name = "e1"
+}
+
+resource "aws_autoscaling_group" "example" {
+  name                = "example-asg"
+  min_size            = 1
+  max_size            = 2
+  desired_capacity    = 2
+  vpc_zone_identifier = [aws_subnet.subnet0.id] # List of subnets
+
+  launch_template {
+    id      = aws_launch_template.launch-temp1.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "example-instance"
+    propagate_at_launch = true
   }
 }
