@@ -60,8 +60,7 @@ resource "aws_network_interface" "netin1" {
 }
 
 resource "aws_eip" "example" {
-  vpc                       = true
-  network_interface         = aws_network_interface.netin1.id
+  network_interface = aws_network_interface.netin1.id
 }
 
 data "aws_ami" "ubuntu" {
@@ -83,13 +82,11 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "ec2_1" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
-  key_name = "key1" 
-  user_data = filebase64("./user_data_nfs1.sh")
+  key_name      = "key1"
+  user_data     = filebase64("./user_data_nfs1.sh")
   network_interface {
-    device_index          = 0
-    subnet_id             = aws_subnet.subnet0.id
-    associate_public_ip_address = true
-    security_groups       = [aws_security_group.sg1.id]
+    device_index         = 0
+    network_interface_id = aws_network_interface.netin1.id
   }
   tags = {
     type = "terraformed"
