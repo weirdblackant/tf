@@ -1,7 +1,7 @@
 Terraform:
 -----------
-- Terraform is a infrastructure management tool introduced by Hashicorp to create, change and version cloud/on-premise infrastructure efficiently.
-- Terraform configuration language can be used to declare infrastructure and whatever fed creates Infrastructure as below.
+- Terraform is an infrastructure management tool introduced by Hashicorp to create, change and version cloud/on-premise infrastructure efficiently.
+- Terraform configuration language can be used to declare infrastructure and the instructions given creates Infrastructure as below.
 
 -------------
 resource "aws_vpc" "main" {
