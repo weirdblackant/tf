@@ -72,14 +72,14 @@ data "aws_ami" "ubuntu" {
 resource "aws_instance" "ec2_1" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
-  key_name                    = "key1"
-  user_data                   = filebase64("./user_data_nfs1.sh")
+  key_name                    = var.key_name
+  user_data                   = filebase64(var.userdata_file)
   subnet_id                   = aws_subnet.subnet0.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.sg1.id]
-  count                       = 2
+  count                       = 1
   tags = {
     type = "terraformed"
-    Name = "ek${count.index}"
+    Name = var.instance_name
   }
 }
